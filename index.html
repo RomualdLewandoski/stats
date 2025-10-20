@@ -54,8 +54,8 @@
                                  class="w-full h-full object-cover"
                                  id="userAvatar">
                         </div>
-                        <h1 class="text-2xl font-bold mb-2 gradient-text" id="userName">Cepheus</h1>
-                        <p class="text-gray-400" id="userHandle">@Cepheus</p>
+                        <h1 class="text-2xl font-bold mb-2 gradient-text" id="userName">@Cepheus</h1>
+                        <p class="text-gray-400" id="userHandle">Romuald Lewandoski</p>
                         
                         <!-- Wakapi Badge -->
                         <div class="mt-3 mb-2">
@@ -99,6 +99,34 @@
                         </div>
                     </div>
 
+                    <!-- Personal Info -->
+                    <div class="mb-6 space-y-3">
+                        <!-- Description -->
+                        <div class="text-left">
+                            <h3 class="text-sm font-semibold text-gray-300 mb-2">Développeur Full-Stack Passionné</h3>
+                            <p class="text-xs text-gray-400 mb-1">Créateur d'expériences web avec les technologies modernes</p>
+                            <span class="inline-block bg-green-600 text-green-100 text-xs px-2 py-1 rounded-full font-medium">
+                                #OpenToWork
+                            </span>
+                        </div>
+                        
+                        <!-- Location & Time -->
+                        <div class="flex space-x-4 text-xs text-gray-400">
+                            <div class="flex items-center space-x-1">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                                </svg>
+                                <span>Lille, France</span>
+                            </div>
+                            <div class="flex items-center space-x-1">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/>
+                                </svg>
+                                <span id="localTime">--:--</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Stats Cards -->
                     <div class="space-y-4">
                         <!-- Time Range Selector -->
@@ -136,7 +164,7 @@
             <div class="lg:col-span-2 space-y-8">
                 <!-- Activity Chart -->
                 <div class="bg-dark-card border border-dark-border rounded-lg p-6 card-hover transition-all">
-                    <h2 class="text-xl font-bold mb-6 text-center gradient-text">ACTIVITÉ L'ANNÉE DERNIÈRE</h2>
+                    <h2 class="text-xl font-bold mb-6 text-center gradient-text">ACTIVITÉ DE L'ANNÉE</h2>
                     <div class="chart-container p-4">
                         <div class="flex justify-center" id="activityChart">
                             <div class="text-gray-400 loading-dots">Chargement du graphique d'activité</div>
@@ -316,6 +344,23 @@
         // Current selected time range
         let currentTimeRange = 'all_time';
 
+        // Function to update local time (Lille, France - Europe/Paris timezone)
+        function updateLocalTime() {
+            const now = new Date();
+            const lilleTime = now.toLocaleTimeString('fr-FR', {
+                timeZone: 'Europe/Paris',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            document.getElementById('localTime').textContent = lilleTime;
+        }
+
+        // Update time every second
+        function startTimeUpdates() {
+            updateLocalTime(); // Initial update
+            setInterval(updateLocalTime, 1000); // Update every second
+        }
+
         // Function to load stats for specific time range
         async function loadStatsForRange(timeRange) {
             try {
@@ -391,8 +436,7 @@
                     const data = initialData.data;
                     
                     // Update profile info (only once)
-                    document.getElementById('userName').textContent = data.username;
-                    document.getElementById('userHandle').textContent = `@${data.username}`;
+                    document.getElementById('userName').textContent = `@${data.username}`;
                     
                     // Update avatar with Gravatar
                     const avatar = document.getElementById('userAvatar');
@@ -419,6 +463,9 @@
                     // Load new data
                     await loadStatsForRange(currentTimeRange);
                 });
+                
+                // Start time updates
+                startTimeUpdates();
                 
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
