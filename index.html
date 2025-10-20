@@ -101,9 +101,28 @@
 
                     <!-- Stats Cards -->
                     <div class="space-y-4">
+                        <!-- Time Range Selector -->
+                        <div class="bg-dark-bg border border-dark-border rounded-lg p-4">
+                            <div class="text-sm text-gray-400 mb-2">PÉRIODE</div>
+                            <select id="timeRange" class="w-full bg-dark-card border border-dark-border rounded-md px-3 py-2 text-white focus:outline-none focus:border-blue-400 transition-colors">
+                                <option value="today">Aujourd'hui</option>
+                                <option value="yesterday">Hier</option>
+                                <option value="week">Cette semaine</option>
+                                <option value="last_7_days">7 derniers jours</option>
+                                <option value="month">Ce mois</option>
+                                <option value="last_30_days">30 derniers jours</option>
+                                <option value="6_months">6 mois</option>
+                                <option value="last_6_months">6 derniers mois</option>
+                                <option value="year">Cette année</option>
+                                <option value="last_12_months">12 derniers mois</option>
+                                <option value="last_year">Année dernière</option>
+                                <option value="all_time" selected>Tout le temps</option>
+                            </select>
+                        </div>
+                        
                         <div class="bg-dark-bg border border-dark-border rounded-lg p-4 stat-card">
-                            <div class="text-sm text-gray-400 mb-1">Dernière semaine</div>
-                            <div class="text-2xl font-bold text-green-400" id="lastWeek">0 hrs 0 mins</div>
+                            <div class="text-sm text-gray-400 mb-1" id="totalTimeLabel">Total</div>
+                            <div class="text-2xl font-bold text-green-400" id="totalTime">0 hrs 0 mins</div>
                         </div>
                         <div class="bg-dark-bg border border-dark-border rounded-lg p-4 stat-card">
                             <div class="text-sm text-gray-400 mb-1">Moyenne journalière</div>
@@ -278,62 +297,128 @@
             projects: ['cyan', 'teal', 'indigo', 'blue', 'purple']
         };
 
-        // Fetch and display data
-        async function loadDashboard() {
+        // Time range labels
+        const timeRangeLabels = {
+            'today': 'Aujourd\'hui',
+            'yesterday': 'Hier',
+            'week': 'Cette semaine',
+            'last_7_days': '7 derniers jours',
+            'month': 'Ce mois',
+            'last_30_days': '30 derniers jours',
+            '6_months': '6 mois',
+            'last_6_months': '6 derniers mois',
+            'year': 'Cette année',
+            'last_12_months': '12 derniers mois',
+            'last_year': 'Année dernière',
+            'all_time': 'Tout le temps'
+        };
+
+        // Current selected time range
+        let currentTimeRange = 'all_time';
+
+        // Function to load stats for specific time range
+        async function loadStatsForRange(timeRange) {
             try {
-                // Load stats
-                const statsResponse = await fetch(`${API_BASE}/compat/wakatime/v1/users/${USERNAME}/stats/all_time`);
+                const statsResponse = await fetch(`${API_BASE}/compat/wakatime/v1/users/${USERNAME}/stats/${timeRange}`);
                 const statsData = await statsResponse.json();
                 
                 if (statsData.data) {
                     const data = statsData.data;
                     
-                    // Update profile info
+                    // Update stats display
+                    document.getElementById('totalTime').textContent = data.human_readable_total || '0 hrs 0 mins';
+                    document.getElementById('dailyAverage').textContent = data.human_readable_daily_average || '0 hrs 0 mins';
+                    document.getElementById('totalTimeLabel').textContent = timeRangeLabels[timeRange] || 'Total';
+                    
+                    // Update badge
+                    const badge = document.getElementById('wakapiBadge');
+                    badge.src = `https://img.shields.io/endpoint?url=${API_BASE}/compat/shields/v1/${data.username}/interval:${timeRange}&label=${timeRangeLabels[timeRange]}&color=blue`;
+                    
+                    // Populate languages
+                    const languageContainer = document.getElementById('languageStats');
+                    if (data.languages && data.languages.length > 0) {
+                        languageContainer.innerHTML = data.languages
+                            .slice(0, 5)
+                            .map((lang, i) => createProgressBar(lang, colors.languages[i % colors.languages.length]))
+                            .join('');
+                    } else {
+                        languageContainer.innerHTML = '<div class="text-gray-500 text-sm">Aucune donnée disponible</div>';
+                    }
+                    
+                    // Populate editors
+                    const editorContainer = document.getElementById('editorStats');
+                    if (data.editors && data.editors.length > 0) {
+                        editorContainer.innerHTML = data.editors
+                            .slice(0, 3)
+                            .map((editor, i) => createProgressBar(editor, colors.editors[i % colors.editors.length]))
+                            .join('');
+                    } else {
+                        editorContainer.innerHTML = '<div class="text-gray-500 text-sm">Aucune donnée disponible</div>';
+                    }
+                    
+                    // Populate projects
+                    const projectContainer = document.getElementById('projectStats');
+                    if (data.projects && data.projects.length > 0) {
+                        projectContainer.innerHTML = data.projects
+                            .slice(0, 5)
+                            .map((proj, i) => createProgressBar(proj, colors.projects[i % colors.projects.length]))
+                            .join('');
+                    } else {
+                        projectContainer.innerHTML = '<div class="text-gray-500 text-sm">Aucune donnée disponible</div>';
+                    }
+                    
+                    // Animate all progress bars
+                    animateProgressBars();
+                    
+                    return data;
+                }
+            } catch (error) {
+                console.error('Error loading stats for range:', timeRange, error);
+                // Show error in stats
+                document.getElementById('totalTime').textContent = 'Erreur de chargement';
+                document.getElementById('dailyAverage').textContent = 'Erreur de chargement';
+            }
+        }
+
+        // Fetch and display data
+        async function loadDashboard() {
+            try {
+                // Load initial stats for all_time to get user info
+                const initialResponse = await fetch(`${API_BASE}/compat/wakatime/v1/users/${USERNAME}/stats/all_time`);
+                const initialData = await initialResponse.json();
+                
+                if (initialData.data) {
+                    const data = initialData.data;
+                    
+                    // Update profile info (only once)
                     document.getElementById('userName').textContent = data.username;
                     document.getElementById('userHandle').textContent = `@${data.username}`;
                     
                     // Update avatar with Gravatar
                     const avatar = document.getElementById('userAvatar');
                     avatar.src = getGravatarUrl(USER_EMAIL, 96);
-                    
-                    // Update badge with current username
-                    const badge = document.getElementById('wakapiBadge');
-                    badge.src = `https://img.shields.io/endpoint?url=${API_BASE}/compat/shields/v1/${data.username}/interval:all_time&label=All%20time&color=blue`;
-                    
-                    // Calculate last week time (simulate for now)
-                    document.getElementById('lastWeek').textContent = data.human_readable_total;
-                    document.getElementById('dailyAverage').textContent = data.human_readable_daily_average || '0 hrs 0 mins';
-                    
-                
-                    
-                    // Populate languages
-                    const languageContainer = document.getElementById('languageStats');
-                    languageContainer.innerHTML = data.languages
-                        .slice(0, 5)
-                        .map((lang, i) => createProgressBar(lang, colors.languages[i % colors.languages.length]))
-                        .join('');
-                    
-                    // Populate editors
-                    const editorContainer = document.getElementById('editorStats');
-                    editorContainer.innerHTML = data.editors
-                        .slice(0, 3)
-                        .map((editor, i) => createProgressBar(editor, colors.editors[i % colors.editors.length]))
-                        .join('');
-                    
-                    // Populate projects
-                    const projectContainer = document.getElementById('projectStats');
-                    projectContainer.innerHTML = data.projects
-                        .slice(0, 5)
-                        .map((proj, i) => createProgressBar(proj, colors.projects[i % colors.projects.length]))
-                        .join('');
-                    
-                    // Animate all progress bars
-                    animateProgressBars();
                 }
+                
+                // Load stats for current time range
+                await loadStatsForRange(currentTimeRange);
                 
                 // Load activity chart
                 const chartContainer = document.getElementById('activityChart');
                 chartContainer.innerHTML = `<img src="${API_BASE}/activity/chart/${USERNAME}.svg" alt="Activity Chart" class="max-w-full h-auto rounded-lg shadow-lg" onerror="this.parentElement.innerHTML='<div class=\\'text-red-400\\'>Unable to load activity chart</div>'">`;
+                
+                // Setup time range selector
+                const timeRangeSelect = document.getElementById('timeRange');
+                timeRangeSelect.value = currentTimeRange;
+                timeRangeSelect.addEventListener('change', async (e) => {
+                    currentTimeRange = e.target.value;
+                    
+                    // Show loading state
+                    document.getElementById('totalTime').textContent = 'Chargement...';
+                    document.getElementById('dailyAverage').textContent = 'Chargement...';
+                    
+                    // Load new data
+                    await loadStatsForRange(currentTimeRange);
+                });
                 
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
