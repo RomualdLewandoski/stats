@@ -205,6 +205,17 @@
                     </div>
                 </div>
 
+                <!-- Categories -->
+                <div class="bg-dark-card border border-dark-border rounded-lg p-6 card-hover transition-all stat-card">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center">
+                        <span class="text-orange-400 mr-2">📊</span>
+                        CATÉGORIES D'ACTIVITÉ
+                    </h3>
+                    <div id="categoryStats" class="space-y-3">
+                        <!-- Categories will be populated here -->
+                    </div>
+                </div>
+
             </div>
         </div>
     </main>
@@ -322,7 +333,8 @@
         const colors = {
             languages: ['blue', 'green', 'purple', 'pink', 'yellow', 'indigo'],
             editors: ['purple', 'pink', 'blue'],
-            projects: ['cyan', 'teal', 'indigo', 'blue', 'purple']
+            projects: ['cyan', 'teal', 'indigo', 'blue', 'purple'],
+            categories: ['orange', 'red', 'amber', 'lime', 'emerald', 'teal']
         };
 
         // Time range labels
@@ -410,6 +422,17 @@
                             .join('');
                     } else {
                         projectContainer.innerHTML = '<div class="text-gray-500 text-sm">Aucune donnée disponible</div>';
+                    }
+                    
+                    // Populate categories
+                    const categoryContainer = document.getElementById('categoryStats');
+                    if (data.categories && data.categories.length > 0) {
+                        categoryContainer.innerHTML = data.categories
+                            .slice(0, 6)
+                            .map((category, i) => createProgressBar(category, colors.categories[i % colors.categories.length]))
+                            .join('');
+                    } else {
+                        categoryContainer.innerHTML = '<div class="text-gray-500 text-sm">Aucune donnée disponible</div>';
                     }
                     
                     // Animate all progress bars
